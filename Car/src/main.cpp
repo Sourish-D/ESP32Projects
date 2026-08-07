@@ -23,7 +23,7 @@ const int mIN2 = 19;
 int stepNumber = 0;
 
 unsigned long lastStepTime = 0;
-int stepDelay = 1; // milliseconds between steps
+int stepDelay = 1000; // microseconds between steps
 
 int sequence[8][4] = {
   {1,0,0,1},
@@ -37,9 +37,9 @@ int sequence[8][4] = {
 };
 
 void setup() {
-  /*
+  
   Serial.begin(9600);
-  */
+  
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
@@ -48,6 +48,7 @@ void setup() {
   pinMode(mEN, OUTPUT);
   pinMode(mIN1, OUTPUT);
   pinMode(mIN2, OUTPUT);
+
 
   digitalWrite(mIN1, HIGH);
   digitalWrite(mIN2, LOW);
@@ -59,36 +60,35 @@ void setup() {
 
 void moveStepper() {
 
-  if (millis() - lastStepTime >= stepDelay) {
+  if (micros() - lastStepTime >= stepDelay) {
 
-    lastStepTime = millis();
+    lastStepTime = micros();
 
     digitalWrite(IN1, sequence[stepNumber][0]);
     digitalWrite(IN2, sequence[stepNumber][1]);
     digitalWrite(IN3, sequence[stepNumber][2]);
     digitalWrite(IN4, sequence[stepNumber][3]);
 
-    stepNumber--;
+    stepNumber++;
 
-    if (stepNumber < 0)
-      stepNumber = 7;
+    if (stepNumber > 7)
+      stepNumber = 0;
   }
 }
 
 void loop() {
-  myServo.write(5);
-
   moveStepper();
-
+/*
+  int potValue = analogRead(potPin);
   
-  /*
-  int pwm = map(potValue, 0, 4095, 0, 255);
+  int angle = map(potValue, 0, 4095, 90, 1);
   Serial.print("Pot: ");
   Serial.print(potValue);
-  Serial.print("  PWM: ");
-  Serial.println(pwm);
+  Serial.print("  Angle: ");
+  Serial.println(angle);
   */
-  ledcWrite(pwmChannel, 140);
+
+  myServo.write(45);
 
 }
 
