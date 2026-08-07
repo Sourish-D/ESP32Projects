@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../../260704-185823-arduino_nano_esp32"
+		},
+		{
+			"name": "Radar System",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

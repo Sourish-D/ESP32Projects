@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../Blinking LED"
+		},
+		{
+			"name": "Potentiometer Controlled LED",
+			"path": "../../Potentiometer Controlled LED"
+		},
+		{
+			"name": "Potentiometer Controlled Servo",
+			"path": "../../Potentiometer Controlled Servo"
+		},
+		{
+			"name": "Radar System",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
