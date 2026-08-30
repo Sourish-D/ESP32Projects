@@ -82,3 +82,11 @@ void loop() {
   myServo.write(45);
 
 }
+
+Checking Joystick
+
+      static unsigned long lastPrint = 0;
+      if (millis() - lastPrint > 500) {
+        Serial.printf("LX: %d | LY: %d\n", ctl->axisX(), ctl->axisY());
+        lastPrint = millis();
+      }
