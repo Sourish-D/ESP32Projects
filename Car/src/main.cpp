@@ -2,6 +2,56 @@
 #include <Bluepad32.h>
 #include <ESP32Servo.h>
 
+const int IN1 = 26;
+const int IN2 = 25;
+const int IN3 = 33;
+const int IN4 = 32;
+
+unsigned long lastStepTime = 0;
+int stepDelay = 2000; // Microseconds between half-steps (increase if motor stalls)
+int stepNumber = 0;   // Keeps track of current sequence position
+
+// 4-step half-stepping sequence for 28BYJ-48 + ULN2003
+const int sequence[4][4] = {
+  {1, 0, 0, 1},
+  {1, 1, 0, 0},
+  {0, 1, 1, 0},
+  {0, 0, 1, 1}
+};
+
+void stepForward() {
+  if (micros() - lastStepTime >= stepDelay) {
+    lastStepTime = micros();
+
+    // Write current step pattern to motor pins
+    digitalWrite(IN1, sequence[stepNumber][0]);
+    digitalWrite(IN2, sequence[stepNumber][1]);
+    digitalWrite(IN3, sequence[stepNumber][2]);
+    digitalWrite(IN4, sequence[stepNumber][3]);
+
+    // Advance step pointer forward
+    stepNumber++;
+
+    // Loop sequence back to 0 after reaching step 3
+    if (stepNumber > 3) {
+      stepNumber = 0;
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+}
+
+void loop() {
+  stepForward(); // Drives motor continuously forward
+}
+/*
 Servo myServo;
 ControllerPtr myControllers[BP32_MAX_GAMEPADS];
 
@@ -129,3 +179,4 @@ void loop() {
 
   delay(15);
 }
+*/
