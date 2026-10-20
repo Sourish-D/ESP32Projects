@@ -2,16 +2,32 @@
 #include <Bluepad32.h>
 #include <ESP32Servo.h>
 
+Servo myServo;
+ControllerPtr myControllers[BP32_MAX_GAMEPADS];
+
+//Pin Definitions
+const int servoPin = 27;
 const int IN1 = 26;
 const int IN2 = 25;
 const int IN3 = 33;
 const int IN4 = 32;
 
+//Stepper Motor Variables
 unsigned long lastStepTime = 0;
-int stepDelay = 2000; // Microseconds between half-steps (increase if motor stalls)
-int stepNumber = 0;   // Keeps track of current sequence position
+int stepNumber = 0;
+int loopForward = 0; 
 
-// 4-step half-stepping sequence for 28BYJ-48 + ULN2003
+//Constants for Motion Range
+const int servoMin = 100;
+const int servoMax = 165;
+const int servoCenter = (servoMin+servoMax)/2;
+const unsigned long stepInterval = 25;
+int servoAngle = 145;
+
+// Non-blocking timing for smooth servo stepping
+unsigned long lastServoMove = 0;
+
+//Stepper Motor Patterns
 const int sequence[4][4] = {
   {1, 0, 0, 1},
   {1, 1, 0, 0},
@@ -19,8 +35,9 @@ const int sequence[4][4] = {
   {0, 0, 1, 1}
 };
 
-void stepForward() {
-  if (micros() - lastStepTime >= stepDelay) {
+//Move Stepper Motor
+void stepForward(int direction) {
+  if (micros() - lastStepTime >= stepInterval) {
     lastStepTime = micros();
 
     // Write current step pattern to motor pins
@@ -30,53 +47,22 @@ void stepForward() {
     digitalWrite(IN4, sequence[stepNumber][3]);
 
     // Advance step pointer forward
-    stepNumber++;
+    stepNumber=stepNumber+direction;
 
     // Loop sequence back to 0 after reaching step 3
+    if (stepNumber < 0) {
+      stepNumber = 3;
+    }
     if (stepNumber > 3) {
       stepNumber = 0;
     }
+    if (direction == 0) {
+      digitalWrite(IN1, 0);
+      digitalWrite(IN2, 0);
+      digitalWrite(IN3, 0);
+      digitalWrite(IN4, 0);
+    }
   }
-}
-
-void setup() {
-  Serial.begin(115200);
-
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
-}
-
-void loop() {
-  stepForward(); // Drives motor continuously forward
-}
-/*
-Servo myServo;
-ControllerPtr myControllers[BP32_MAX_GAMEPADS];
-
-
-//Pin Definitions
-const int servoPin = 5;
-const int dcPin1 = 12;
-const int dcPin2 = 14;
-const int dcPinEN = 13;
-const int ENpwmChannel = 6;
-
-//Constants for Motion Range
-const int servoMin = 100;
-const int servoMax = 165;
-const int servoCenter = (servoMin+servoMax)/2;
-const unsigned long stepInterval = 50; // Move every 50ms while button is held
-int servoAngle = 145; // Start at center position (90 degrees)
-
-// Non-blocking timing for smooth servo stepping
-unsigned long lastServoMove = 0;
-
-//Motor Movement
-void setMotorForward(bool fwd) {
-  digitalWrite(dcPin1, fwd ? 0 : 1);
-  digitalWrite(dcPin2, fwd ? 0 : 0);
 }
 
 //Servo Movement
@@ -119,28 +105,34 @@ void setup() {
   myServo.setPeriodHertz(50);
   myServo.attach(servoPin, 500, 2400);
   myServo.write(servoAngle);
-  
-  //DC Motor Pin Modes
-  pinMode(dcPin1, OUTPUT);
-  pinMode(dcPin2, OUTPUT);
-  pinMode(dcPinEN, OUTPUT);
-
-  //DC Motor EN PWM
-  ledcSetup(ENpwmChannel, 1000, 8);
-  ledcAttachPin(dcPinEN, ENpwmChannel);
 
   //Bluetooth Controller Setup
   BP32.setup(&onConnectedController, &onDisconnectedController);
   BP32.forgetBluetoothKeys();
   BP32.enableVirtualDevice(false);
+
+  //Stepper Motor Outputs
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
 }
+
+
 
 void loop() {
   //Bluetooth Connection
   BP32.update();
   
+  if (loopForward==1) {
+    stepForward(1);
+  } else if (loopForward==-1) {
+    stepForward(-1);
+  } else {
+    stepForward(0);
+  }
+
   //Writing DC Motor EN
-  ledcWrite(ENpwmChannel, 255);
   myServo.write(servoAngle);
 
   //Connecting to Controller
@@ -161,11 +153,13 @@ void loop() {
         }
         else if (dpad & DPAD_UP) {
           //Top D-Pad Pressed : Begin Movement Forward
-          setMotorForward(true);
+          loopForward=1;
+          Serial.println("D-Pad: UP  | Forward");
         } 
         else if (dpad & DPAD_DOWN) {
           //Bottom D-Pad Pressed : Begin Movement Reverse
-          setMotorForward(false);
+          loopForward=-1;
+          Serial.println("D-Pad: DOWN  | Reverse");
         }
       }
 
@@ -173,10 +167,13 @@ void loop() {
       if (ctl->x()) { // X Button Pressed : Center Robot
          Serial.println("Button X Pressed | Centering!");
          servoAngle=145;
-      }        
+      }
+      else if (ctl->y()) { // Y Button Pressed : Stop Movement
+         Serial.println("Button Y Pressed | Stopping!");
+         loopForward=0;
+      }     
     }
   }
 
-  delay(15);
+  delay(5);
 }
-*/
